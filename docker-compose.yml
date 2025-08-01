@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres
+    container_name: postgres_UsersSystem
+    restart: always
+    environment:
+      POSTGRES_USER: "SA_User"
+      POSTGRES_PASSWORD: "adm1234"
+      POSTGRES_DB: UsersSystem
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - usersys-app-network
+
+  redis:
+    image: redis:7
+    container_name: redis_UsersSystem
+    ports:
+      - "6379:6379"
+    networks:
+      - usersys-app-network
+
+  users-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_started   # espera Postgres sinalizar saúde (requer healthcheck no postgres)
+      redis:
+        condition: service_started   # redis sobe rápido; service_started é suficiente
+    environment:
+      DATABASE_URL: postgresql://SA_User:adm1234@postgres:5432/UsersSystem?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - usersys-app-network
+
+volumes:
+  pgdata: 
+
+networks:
+  usersys-app-network:
+    driver: bridge
